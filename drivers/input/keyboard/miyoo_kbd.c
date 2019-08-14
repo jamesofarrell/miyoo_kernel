@@ -79,7 +79,7 @@ static struct input_dev *mydev;
 static struct timer_list mytimer;
 static int myperiod=30;
 
-static unsigned long miyoo_ver=3;
+static unsigned long miyoo_ver=1;
 static unsigned long hotkey=0;
 static unsigned long lockkey=0;
 static uint8_t *gpio;
@@ -216,6 +216,18 @@ static void scan_handler(unsigned long unused)
       val|= MY_TB;
     }
   #endif
+    if (miyoo_ver == 1 && val & MY_R) {
+      if (! (val & MY_LEFT) ) {
+        val&= ~MY_R;
+        val|= MY_LEFT;
+      }
+    } else if (miyoo_ver == 1 && val & MY_LEFT) {
+      if (! (val & MY_R) ) {
+        val&= ~MY_LEFT;
+        val|= MY_R;
+      }
+    }
+
   }
   else{
     gpio_direction_input(IN_1);
@@ -347,14 +359,14 @@ static void scan_handler(unsigned long unused)
     pre = val;
     report_key(pre, MY_UP, KEY_UP);
     report_key(pre, MY_DOWN, KEY_DOWN);
-    if((miyoo_ver == 1) || (miyoo_ver == 3)){
-      report_key(pre, MY_LEFT, KEY_LEFT);
-      report_key(pre, MY_R, KEY_RIGHTCTRL);
-    }
-    else{
-      report_key(pre, MY_R, KEY_LEFT);
-      report_key(pre, MY_LEFT, KEY_RIGHTCTRL);
-    }
+    //if((miyoo_ver == 1) || (miyoo_ver == 3)){
+    report_key(pre, MY_LEFT, KEY_LEFT);
+    report_key(pre, MY_R, KEY_RIGHTCTRL);
+    //}
+    //else{
+    //  report_key(pre, MY_R, KEY_LEFT);
+    //  report_key(pre, MY_LEFT, KEY_RIGHTCTRL);
+    //}
     report_key(pre, MY_RIGHT, KEY_RIGHT);
 
     report_key(pre, MY_A, KEY_LEFTCTRL);
@@ -401,7 +413,7 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     break;
   case MIYOO_KBD_SET_VER:
     miyoo_ver = arg;
-    miyoo_ver = 3;
+    //miyoo_ver = 3;
     
 printk("miyoo keypad config as v%d\n", (int)miyoo_ver);
     break;

@@ -108,7 +108,7 @@ struct suniv_pwm_chip {
 };
 
 static int major = -1;
-static int motor_ver = 1;
+static int motor_ver = 3;
 static struct cdev mycdev;
 static struct class *myclass = NULL;
 
@@ -408,7 +408,7 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     }
 
     do_gpio_free(motor_ver);
-    motor_ver = 3;
+    motor_ver = arg;
     do_gpio_request(motor_ver);
     break;
   }

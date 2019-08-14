@@ -55,6 +55,8 @@
 #define MIYOO_FB0_SET_FPBP    _IOWR(0x104, 0, unsigned long)
 #define MIYOO_FB0_GET_FPBP    _IOWR(0x105, 0, unsigned long)
 
+#define POCKET_GO             1
+
 #define LRAM_NUM              1
 #define PALETTE_SIZE          256
 #define DRIVER_NAME           "miyoofb"
@@ -603,7 +605,11 @@ static int panel_init(void)
     mdelay(250);
                   
     gpio_wr_cmd(0x36);
-    gpio_wr_dat(0x70);
+#if defined(POCKET_GO)
+    gpio_wr_dat(0xB0); //screen direction //0x70 for 3.5, 0xB0 for pg
+#else
+    gpio_wr_dat(0x70); //screen direction //0x70 for 3.5, 0xB0 for pg
+#endif
                           
     gpio_wr_cmd(0x3a);
     gpio_wr_dat(0x05);
@@ -1034,7 +1040,8 @@ static int panel_init(void)
   writel(0x22222220, iomm.gpio + PD_CFG0);
   writel(0x22222202, iomm.gpio + PD_CFG1);
   writel(0x00222222, iomm.gpio + PD_CFG2);
-  return miyoo_ver;
+  return 3;
+  //return miyoo_ver;
 }
 
 static void suniv_enable_irq(struct myfb_par *par)
@@ -1520,6 +1527,7 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
   int32_t w, bpp;
   unsigned long tmp;
+  uint32_t ver_temp=3;
 
   switch(cmd){
   case MIYOO_FB0_PUT_OSD:
@@ -1537,7 +1545,7 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     }
     break;
   case MIYOO_FB0_GET_VER:
-    w = copy_to_user((void*)arg, &miyoo_ver, sizeof(uint32_t));
+    w = copy_to_user((void*)arg, &ver_temp, sizeof(uint32_t));
     break;
   case MIYOO_FB0_SET_FLIP:
     flip_mode = arg;
