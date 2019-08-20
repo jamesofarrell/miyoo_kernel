@@ -102,6 +102,7 @@ static int major = -1;
 static struct cdev mycdev;
 static struct class *myclass = NULL;
 static uint32_t miyoo_ver=0;
+static uint32_t miyoo_ver_temp=3;
 static int flip_mode=0;
 static int new_bp=8;
 static int new_fp=8;
@@ -1040,8 +1041,7 @@ static int panel_init(void)
   writel(0x22222220, iomm.gpio + PD_CFG0);
   writel(0x22222202, iomm.gpio + PD_CFG1);
   writel(0x00222222, iomm.gpio + PD_CFG2);
-  return 3;
-  //return miyoo_ver;
+  return miyoo_ver;
 }
 
 static void suniv_enable_irq(struct myfb_par *par)
@@ -1527,7 +1527,6 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
   int32_t w, bpp;
   unsigned long tmp;
-  uint32_t ver_temp=3;
 
   switch(cmd){
   case MIYOO_FB0_PUT_OSD:
@@ -1545,7 +1544,7 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     }
     break;
   case MIYOO_FB0_GET_VER:
-    w = copy_to_user((void*)arg, &ver_temp, sizeof(uint32_t));
+    w = copy_to_user((void*)arg, &miyoo_ver_temp, sizeof(uint32_t));
     break;
   case MIYOO_FB0_SET_FLIP:
     flip_mode = arg;
