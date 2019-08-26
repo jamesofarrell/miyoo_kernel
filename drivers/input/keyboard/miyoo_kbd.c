@@ -85,6 +85,8 @@ static unsigned long lockkey=0;
 static uint8_t *gpio;
 bool hotkey_mod_last=false;
 bool hotkey_actioned=false;
+bool non_hotkey_first=false;
+bool non_hotkey_menu=false;
  
 static int do_input_request(uint32_t pin, const char*name)
 {
@@ -294,7 +296,6 @@ static void scan_handler(unsigned long unused)
     val&= ~MY_L1;
     val|= MY_L2;
     hotkey_actioned = true;
-
   }
   if((val & MY_R) && (val & MY_R1)) {
 	  val&= ~MY_R;
@@ -303,7 +304,27 @@ static void scan_handler(unsigned long unused)
     hotkey_actioned = true;
   }
 
-  if(val & MY_R) {
+  if(val > 0 && !(val & MY_R)) {
+	  non_hotkey_first = true;
+  }
+
+  if((val & MY_R) && non_hotkey_first) {
+    non_hotkey_menu = true;
+  }
+
+  if(non_hotkey_menu) {
+    if(val & MY_R) {
+	    val&= ~MY_R;
+    } else if(!hotkey_actioned) {
+      val|= MY_R;
+      non_hotkey_menu = false;
+    } else {
+      hotkey_actioned = false;
+      non_hotkey_menu = false;
+    }
+  }
+
+  if(val & MY_R && !non_hotkey_first) {
 		if((val & MY_R) && (val & MY_B)){
 			hotkey_actioned = true;
 			hotkey = hotkey == 0 ? 3 : hotkey;
@@ -356,6 +377,10 @@ static void scan_handler(unsigned long unused)
       }
     }
 
+    if (non_hotkey_first) {
+
+    }
+
     pre = val;
     report_key(pre, MY_UP, KEY_UP);
     report_key(pre, MY_DOWN, KEY_DOWN);
@@ -389,6 +414,10 @@ static void scan_handler(unsigned long unused)
 
   if(!(val & MY_R)) {
     hotkey_mod_last = false;
+  }
+
+  if(val == 0 && non_hotkey_first) {
+	  non_hotkey_first = false;
   }
 }
 
