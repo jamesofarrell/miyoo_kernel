@@ -259,13 +259,21 @@ static void scan_handler(unsigned long unused)
       val|= MY_RIGHT;
     }
     if(gpio_get_value(OUT_1) == 0){
-      val|= MY_A;
+      if (miyoo_ver == 4) {
+        val|= MY_TA;
+      } else {
+        val|= MY_A;
+      }
     }
     if(gpio_get_value(OUT_2) == 0){
       val|= MY_B;
     }
     if(gpio_get_value(OUT_3) == 0){
-      val|= MY_TA;
+      if (miyoo_ver == 4) {
+        val|= MY_A;
+      } else {
+        val|= MY_TA;
+      }
     }
     if(gpio_get_value(IN_TA) == 0){
       val|= MY_TB;
@@ -384,14 +392,8 @@ static void scan_handler(unsigned long unused)
     pre = val;
     report_key(pre, MY_UP, KEY_UP);
     report_key(pre, MY_DOWN, KEY_DOWN);
-    //if((miyoo_ver == 1) || (miyoo_ver == 3)){
     report_key(pre, MY_LEFT, KEY_LEFT);
     report_key(pre, MY_R, KEY_RIGHTCTRL);
-    //}
-    //else{
-    //  report_key(pre, MY_R, KEY_LEFT);
-    //  report_key(pre, MY_LEFT, KEY_RIGHTCTRL);
-    //}
     report_key(pre, MY_RIGHT, KEY_RIGHT);
 
     report_key(pre, MY_A, KEY_LEFTCTRL);

@@ -55,7 +55,8 @@
 #define MIYOO_FB0_SET_FPBP    _IOWR(0x104, 0, unsigned long)
 #define MIYOO_FB0_GET_FPBP    _IOWR(0x105, 0, unsigned long)
 
-#define POCKET_GO             1
+#define NO_POCKET_GO             1
+#define MIYOO3                1
 
 #define LRAM_NUM              1
 #define PALETTE_SIZE          256
@@ -102,7 +103,11 @@ static int major = -1;
 static struct cdev mycdev;
 static struct class *myclass = NULL;
 static uint32_t miyoo_ver=0;
+#if defined(POCKET_GO)
+static uint32_t miyoo_ver_temp=4;
+#else
 static uint32_t miyoo_ver_temp=3;
+#endif
 static int flip_mode=0;
 static int new_bp=8;
 static int new_fp=8;
@@ -744,7 +749,7 @@ static int panel_init(void)
     gpio_wr_cmd(0x36);
     gpio_wr_dat(0x1105);
     gpio_wr_cmd(0x37);
-    gpio_wr_dat(0x1108);
+    gpio_wr_dat(0x1109);
     gpio_wr_cmd(0x38);
     gpio_wr_dat(0x0301);
     gpio_wr_cmd(0x39);
@@ -1037,6 +1042,9 @@ static int panel_init(void)
     break;
   }
 
+#if defined(MIYOO3)
+  for(x=0;x<320;x++) gpio_wr_dat(0x00);
+#endif
   writel(0xffffffff, iomm.gpio + PD_DATA);
   writel(0x22222220, iomm.gpio + PD_CFG0);
   writel(0x22222202, iomm.gpio + PD_CFG1);
@@ -1544,8 +1552,16 @@ static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
     }
     break;
   case MIYOO_FB0_GET_VER:
-    w = copy_to_user((void*)arg, &miyoo_ver_temp, sizeof(uint32_t));
+#if defined(MIYOO3)
+    w = copy_to_user((void*)arg, &miyoo_ver, sizeof(uint32_t));
     break;
+#elif defined(POCKETGO)
+    w = copy_to_user((void*)arg, &miyoo_ver_temp, sizeof(uint32_t));
+    break
+#else
+    w = copy_to_user((void*)arg, &miyoo_ver, sizeof(uint32_t));
+    break;
+#endif
   case MIYOO_FB0_SET_FLIP:
     flip_mode = arg;
     break;
