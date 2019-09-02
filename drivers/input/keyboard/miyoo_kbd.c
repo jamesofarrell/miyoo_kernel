@@ -72,6 +72,9 @@
 
 #define USE_UART	1
 
+#define NO_RAW	1
+#define NO_RS97 1
+
 static int major = -1;
 static struct cdev mycdev;
 static struct class *myclass = NULL;
@@ -218,6 +221,7 @@ static void scan_handler(unsigned long unused)
       val|= MY_TB;
     }
   #endif
+#if !defined(RAW)
     if (miyoo_ver == 1 && val & MY_R) {
       if (! (val & MY_LEFT) ) {
         val&= ~MY_R;
@@ -229,6 +233,7 @@ static void scan_handler(unsigned long unused)
         val|= MY_R;
       }
     }
+#endif
 
   }
   else{
@@ -259,21 +264,13 @@ static void scan_handler(unsigned long unused)
       val|= MY_RIGHT;
     }
     if(gpio_get_value(OUT_1) == 0){
-      if (miyoo_ver == 4) {
-        val|= MY_TA;
-      } else {
         val|= MY_A;
-      }
     }
     if(gpio_get_value(OUT_2) == 0){
-      val|= MY_B;
+        val|= MY_B;
     }
     if(gpio_get_value(OUT_3) == 0){
-      if (miyoo_ver == 4) {
-        val|= MY_A;
-      } else {
         val|= MY_TA;
-      }
     }
     if(gpio_get_value(IN_TA) == 0){
       val|= MY_TB;
@@ -299,6 +296,7 @@ static void scan_handler(unsigned long unused)
     val = val & MY_R ? MY_R : 0;
   }
 
+#if !defined(RAW)
   if((val & MY_R) && (val & MY_L1)) {
 	  val&= ~MY_R;
     val&= ~MY_L1;
@@ -310,6 +308,18 @@ static void scan_handler(unsigned long unused)
     val&= ~MY_R1;
     val|= MY_R2;
     hotkey_actioned = true;
+  }
+  if(miyoo_ver < 4)  {
+    if((val & MY_START) && (val & MY_B)) {
+      val&= ~MY_START;
+      val&= ~MY_B;
+      val|= MY_L1;
+     }
+     if((val & MY_START) && (val & MY_A)) {
+       val&= ~MY_START;
+       val&= ~MY_A;
+       val|= MY_R1;
+     }
   }
 
   if(val > 0 && !(val & MY_R)) {
@@ -384,23 +394,27 @@ static void scan_handler(unsigned long unused)
         hotkey_actioned = false;
       }
     }
-
-    if (non_hotkey_first) {
-
-    }
-
+#endif
+#if defined(RAW)
+  if(pre != val) {
+#endif
     pre = val;
     report_key(pre, MY_UP, KEY_UP);
     report_key(pre, MY_DOWN, KEY_DOWN);
     report_key(pre, MY_LEFT, KEY_LEFT);
     report_key(pre, MY_R, KEY_RIGHTCTRL);
     report_key(pre, MY_RIGHT, KEY_RIGHT);
-
+#if defined(RS97)
+    report_key(pre, MY_TA, KEY_LEFTCTRL);
+    report_key(pre, MY_TB, KEY_SPACE);
+    report_key(pre, MY_A, KEY_LEFTALT);
+    report_key(pre, MY_B, KEY_LEFTSHIFT);
+#else
     report_key(pre, MY_A, KEY_LEFTCTRL);
     report_key(pre, MY_B, KEY_SPACE);
     report_key(pre, MY_TA, KEY_LEFTALT);
     report_key(pre, MY_TB, KEY_LEFTSHIFT);
-    
+#endif
     report_key(pre, MY_SELECT, KEY_ESC);
     report_key(pre, MY_START, KEY_ENTER);
 
@@ -414,6 +428,7 @@ static void scan_handler(unsigned long unused)
 
   mod_timer(&mytimer, jiffies + msecs_to_jiffies(myperiod));
 
+#if !defined(RAW)
   if(!(val & MY_R)) {
     hotkey_mod_last = false;
   }
@@ -421,6 +436,7 @@ static void scan_handler(unsigned long unused)
   if(val == 0 && non_hotkey_first) {
 	  non_hotkey_first = false;
   }
+#endif
 }
 
 static int myopen(struct inode *inode, struct file *file)
