@@ -297,29 +297,44 @@ static void scan_handler(unsigned long unused)
   }
 
 #if !defined(RAW)
-  if((val & MY_R) && (val & MY_L1)) {
-	  val&= ~MY_R;
-    val&= ~MY_L1;
-    val|= MY_L2;
-    hotkey_actioned = true;
-  }
-  if((val & MY_R) && (val & MY_R1)) {
-	  val&= ~MY_R;
-    val&= ~MY_R1;
-    val|= MY_R2;
-    hotkey_actioned = true;
-  }
-  if(miyoo_ver < 4)  {
-    if((val & MY_START) && (val & MY_B)) {
-      val&= ~MY_START;
+  if(miyoo_ver == 4)  {
+    if((val & MY_R) && (val & MY_L1)) {
+      val&= ~MY_R;
+      val&= ~MY_L1;
+      val|= MY_L2;
+      hotkey_actioned = true;
+    }
+    if((val & MY_R) && (val & MY_R1)) {
+      val&= ~MY_R;
+      val&= ~MY_R1;
+      val|= MY_R2;
+      hotkey_actioned = true;
+    }
+  } else {
+    if((val & MY_R) && (val & MY_B)) {
+      val&= ~MY_R;
       val&= ~MY_B;
       val|= MY_L1;
-     }
-     if((val & MY_START) && (val & MY_A)) {
-       val&= ~MY_START;
-       val&= ~MY_A;
-       val|= MY_R1;
-     }
+      hotkey_actioned = true;
+    }
+    if((val & MY_R) && (val & MY_A)) {
+      val&= ~MY_R;
+      val&= ~MY_A;
+      val|= MY_R1;
+      hotkey_actioned = true;
+    }
+    if((val & MY_R) && (val & MY_TB)) {
+      val&= ~MY_R;
+      val&= ~MY_TB;
+      val|= MY_L2;
+      hotkey_actioned = true;
+    }
+    if((val & MY_R) && (val & MY_TA)) {
+      val&= ~MY_R;
+      val&= ~MY_TA;
+      val|= MY_R2;
+      hotkey_actioned = true;
+    }
   }
 
   if(val > 0 && !(val & MY_R)) {
@@ -343,21 +358,29 @@ static void scan_handler(unsigned long unused)
   }
 
   if(val & MY_R && !non_hotkey_first) {
-		if((val & MY_R) && (val & MY_B)){
-			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 3 : hotkey;
-		}
-		else if((val & MY_R) && (val & MY_A)){
-			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 4 : hotkey;
-		}
+	  if((val & MY_R) && (val & MY_B)){
+      if(miyoo_ver == 4)  {
+			  hotkey_actioned = true;
+	  	  hotkey = hotkey == 0 ? 3 : hotkey;
+      }
+	 	}
+	 	else if((val & MY_R) && (val & MY_A)){
+      if(miyoo_ver == 4)  {
+	  	  hotkey_actioned = true;
+	  	  hotkey = hotkey == 0 ? 4 : hotkey;
+      }
+	 	}
 		else if((val & MY_R) && (val & MY_TB)){
-			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 1 : hotkey;
+      if(miyoo_ver == 4)  {
+        hotkey_actioned = true;
+        hotkey = hotkey == 0 ? 1 : hotkey;
+      }
 		}
 		else if((val & MY_R) && (val & MY_TA)){
-			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 2 : hotkey;
+      if(miyoo_ver == 4)  {
+        hotkey_actioned = true;
+        hotkey = hotkey == 0 ? 2 : hotkey;
+      }
 		}
 		else if((val & MY_R) && (val & MY_UP)){
 			hotkey_actioned = true;
