@@ -25,6 +25,7 @@
 #include <linux/input.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/backlight.h>
 #include <asm/irq.h>
 #include <asm/io.h>
 #include <asm/io.h>
@@ -73,7 +74,8 @@
 #define USE_UART	1
 
 #define NO_RAW	1
-#define NO_RS97 1
+#define RS97 1
+
 
 static int major = -1;
 static struct cdev mycdev;
@@ -82,15 +84,17 @@ static struct input_dev *mydev;
 static struct timer_list mytimer;
 static int myperiod=30;
 
+static struct backlight_device *bd;
 static unsigned long miyoo_ver=1;
 static unsigned long hotkey=0;
 static unsigned long lockkey=0;
 static uint8_t *gpio;
 bool hotkey_mod_last=false;
 bool hotkey_actioned=false;
+bool hotkey_down=false;
 bool non_hotkey_first=false;
 bool non_hotkey_menu=false;
- 
+
 static int do_input_request(uint32_t pin, const char*name)
 {
   if(gpio_request(pin, name) < 0){
@@ -160,6 +164,9 @@ static void scan_handler(unsigned long unused)
 {
   static uint32_t pre=0;
   uint32_t scan=0, val=0;
+  extern void MIYOO_INCREASE_VOLUME(void);
+  extern void MIYOO_DECREASE_VOLUME(void);
+
 
   if(miyoo_ver <= 2){
     for(scan=0; scan<3; scan++){
@@ -383,24 +390,51 @@ static void scan_handler(unsigned long unused)
       }
 		}
 		else if((val & MY_R) && (val & MY_UP)){
+      if(!hotkey_down) {
+        MIYOO_INCREASE_VOLUME();
+        hotkey_down = true;
+      }
 			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 5 : hotkey;
+			//hotkey = hotkey == 0 ? 5 : hotkey;
 		}
 		else if((val & MY_R) && (val & MY_DOWN)){
+      if(!hotkey_down) {
+        MIYOO_DECREASE_VOLUME();
+        hotkey_down = true;
+      }
 			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 6 : hotkey;
+			//hotkey = hotkey == 0 ? 6 : hotkey;
 		}
 		else if((val & MY_R) && (val & MY_LEFT)){
+      if(!hotkey_down) {
+        bd = backlight_device_get_by_type(BACKLIGHT_RAW);
+        if(bd->props.brightness > 2) {
+          backlight_device_set_brightness(bd, bd->props.brightness - 1);
+        }
+        hotkey_down = true;
+      }
 			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 7 : hotkey;
+			//hotkey = hotkey == 0 ? 7 : hotkey;
 		}
 	 else if((val & MY_R) && (val & MY_RIGHT)){
+      if(!hotkey_down) {
+        bd = backlight_device_get_by_type(BACKLIGHT_RAW);
+        if(bd->props.brightness < 10) {
+          backlight_device_set_brightness(bd, bd->props.brightness + 1);
+        }
+        hotkey_down = true;
+      }
 			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 8 : hotkey;
+			//hotkey = hotkey == 0 ? 8 : hotkey;
 		}
 		else if((val & MY_R) && (val & MY_SELECT)){
+      if(!hotkey_down) {
+        static char * shutdown_argv[] = {  "/bin/sh", "-c", "/bin/kill $(/bin/ps -al | /bin/grep \"/mnt/\" | /bin/grep -v \"/kernel/\" | /usr/bin/tr -s [:blank:] | /usr/bin/cut -d \" \" -f 2) ; /bin/sleep 0.1 ; /bin/sync ; /sbin/poweroff",  NULL };
+        call_usermodehelper(shutdown_argv[0], shutdown_argv, NULL, UMH_NO_WAIT);
+        hotkey_down = true;
+      }
 			hotkey_actioned = true;
-			hotkey = hotkey == 0 ? 9 : hotkey;
+			//hotkey = hotkey == 0 ? 9 : hotkey;
 		}
 		else if((val & MY_R) && (val & MY_START)){
 			hotkey_actioned = true;
@@ -454,6 +488,11 @@ static void scan_handler(unsigned long unused)
 #if !defined(RAW)
   if(!(val & MY_R)) {
     hotkey_mod_last = false;
+    hotkey_down = false;
+  }
+
+  if((val & MY_R) && ! ( (val & MY_DOWN) || (val & MY_UP) || (val & MY_LEFT) || (val & MY_RIGHT) || (val & MY_SELECT) ) ) {
+    hotkey_down = false;
   }
 
   if(val == 0 && non_hotkey_first) {

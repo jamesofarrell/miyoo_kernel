@@ -54,6 +54,7 @@
 #define MIYOO_KBD_GET_HOTKEY  _IOWR(0x100, 0, unsigned long)
 #define MIYOO_FB0_PUT_OSD     _IOWR(0x100, 0, unsigned long)
 #define MIYOO_SND_SET_VOLUME  _IOWR(0x100, 0, unsigned long)
+#define MIYOO_SND_GET_VOLUME  _IOWR(0x101, 0, unsigned long)
 
 struct mypcm {
   uint32_t dma_period;
@@ -80,6 +81,8 @@ static struct suniv_iomm iomm={0};
 static int major = -1;
 static struct cdev mycdev;
 static struct class *myclass = NULL;
+
+static unsigned long MIYOO_VOLUME = 5;
 
 static void suniv_ioremap(void)
 {
@@ -435,17 +438,41 @@ static int myclose(struct inode *inode, struct file *file)
   return 0;
 }
 
+extern void MIYOO_SET_VOLUME(unsigned long arg) {
+  uint32_t ret;
+  ret = readl(iomm.codec + DAC_MIXER_CTRL_REG);
+  ret&= ~0x3f;
+  ret|= (arg * 6);
+  writel(ret, iomm.codec + DAC_MIXER_CTRL_REG);
+  MIYOO_VOLUME = arg;
+  //printk("MIYOO_SET_VOLUME %ld %ld %ld\n", arg, (arg * 6),MIYOO_VOLUME);
+}
+EXPORT_SYMBOL_GPL(MIYOO_SET_VOLUME);
+
+extern void MIYOO_INCREASE_VOLUME(void){
+  if(MIYOO_VOLUME < 9) {
+    MIYOO_SET_VOLUME(MIYOO_VOLUME+1);
+  }
+}
+EXPORT_SYMBOL_GPL(MIYOO_INCREASE_VOLUME);
+
+extern void MIYOO_DECREASE_VOLUME(void){
+  if(MIYOO_VOLUME > 0) {
+    MIYOO_SET_VOLUME(MIYOO_VOLUME-1);
+  }
+}
+EXPORT_SYMBOL_GPL(MIYOO_DECREASE_VOLUME);
+
 static long myioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
   uint32_t ret;
 
   switch(cmd){
   case MIYOO_SND_SET_VOLUME:
-    ret = readl(iomm.codec + DAC_MIXER_CTRL_REG);
-    ret&= ~0x3f;
-    ret|= (arg * 6);
-    writel(ret, iomm.codec + DAC_MIXER_CTRL_REG);
-    //printk("MIYOO_SND_SET_VOLUME %d %d\n", arg, (arg * 6));
+    MIYOO_SET_VOLUME(arg);
+    break;
+  case MIYOO_SND_GET_VOLUME:
+    ret = copy_to_user((void*)arg, &MIYOO_VOLUME, sizeof(unsigned long));
     break;
   }
   return 0;
